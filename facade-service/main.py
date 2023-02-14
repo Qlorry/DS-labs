@@ -2,6 +2,9 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 import logging
 
 from FacadeImpl import *
+class FacadeApp:
+    def __init__(self):
+        print("hello")
 
 def run(server_class=HTTPServer, handler_class=FacadeImpl, port=8080):
     logging.basicConfig(level=logging.INFO)
