@@ -1,14 +1,14 @@
 from http.server import HTTPServer
 import argparse
 
-from FacadeImpl import *
-from FacadeApp import *
+from MessageImpl import *
+from MessageApp import *
 
 CONFIG_KEY_PORT = "PORT"
 
-class FacadeApp:
+class MessageApp:
     def __init__(self):
-        self.name = "facade-service"
+        self.name = "message-service"
         configure_logging(self.name)
 
         self.arg_parser = argparse.ArgumentParser(
@@ -29,7 +29,7 @@ class FacadeApp:
 
     def run(self):
         server_address = ('', self.config[CONFIG_KEY_PORT])
-        httpd = HTTPServer(server_address, FacadeImpl)
+        httpd = HTTPServer(server_address, MessageImpl)
         app_log('Starting httpd at ' + str(server_address))
         try:
             httpd.serve_forever()
