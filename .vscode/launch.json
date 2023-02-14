@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "facade-service/main.py",
             "console": "integratedTerminal",
-            "args": ["-p", "10000"],
+            "args": ["-p", "10000", "-ls", "http://127.0.0.1:20000/", "-ms", "http://127.0.0.1:30000/"],
             "justMyCode": true
         },
         {
