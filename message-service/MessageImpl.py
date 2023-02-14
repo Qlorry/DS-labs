@@ -2,7 +2,7 @@ from http.server import BaseHTTPRequestHandler
 
 from Logging import *
 
-class FacadeImpl(BaseHTTPRequestHandler):
+class MessageImpl(BaseHTTPRequestHandler):
     def _set_response(self):
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
