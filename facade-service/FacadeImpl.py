@@ -18,8 +18,8 @@ class FacadeImpl(BaseHTTPRequestHandler):
         self.end_headers()
 
     def do_GET(self):
-        domain_log("GET request,\nPath: {0}\nHeaders:\n{1}".format( str(self.path), str(self.headers)))
-        
+        # domain_log("GET request,\nPath: {0}\nHeaders:\n{1}".format( str(self.path), str(self.headers)))
+        domain_log("GET request!")
         log_srv_messages = requests.get(url = self.log_srv)
         msg_srv_messages = requests.get(url = self.msg_srv)
         result = ""
@@ -34,8 +34,9 @@ class FacadeImpl(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers['Content-Length']) # <--- Gets the size of data
         post_data = self.rfile.read(content_length) # <--- Gets the data itself
-        domain_log("POST request,\nPath: {0}\nHeaders:\n{1}\n\nBody:\n{2}".format(
-                str(self.path), str(self.headers), post_data.decode('utf-8')))
+        # domain_log("POST request,\nPath: {0}\nHeaders:\n{1}\n\nBody:\n{2}".format(
+        #         str(self.path), str(self.headers), post_data.decode('utf-8')))
+        domain_log("POST request! With new message: " + post_data.decode('utf-8'))
 
         header = {"ID": str(uuid.uuid1())}
         try:
@@ -50,6 +51,8 @@ class FacadeImpl(BaseHTTPRequestHandler):
         if not log_srv_response.ok or not msg_srv_response.ok:
             self._set_response(500)
             result = "log_srv returned " + str(log_srv_response.status_code) + " msg_srv returned " + str(msg_srv_response.status_code)
+            domain_log("ERROR: " + result)
         else:
             self._set_response(200)
+            domain_log("Message writen with " + str(header))
         self.wfile.write(result.encode('utf-8'))
