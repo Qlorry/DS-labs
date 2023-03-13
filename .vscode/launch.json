@@ -10,7 +10,7 @@
             "request": "launch",
             "program": "facade-service/main.py",
             "console": "integratedTerminal",
-            "args": ["-p", "10000"],
+            "args": ["-p", "10000", "-lp", "20000", "20001", "20002", "-mp", "30000"],
             "justMyCode": true
         },
         {
