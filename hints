@@ -1,0 +1,46 @@
+docker network create hazelcast-network
+
+main
+docker run \
+    -d \
+    --name main \
+    --network hazelcast-network \
+    -e HZ_CLUSTERNAME=dev \
+    -p 5701:5701 hazelcast/hazelcast:5.2.2 
+
+second
+docker run \
+    -d \
+    --name my-second-member --network hazelcast-network \
+    -e HZ_CLUSTERNAME=dev \
+    -p 5702:5701 hazelcast/hazelcast:5.2.2
+
+third
+docker run \
+    -d \
+    --name my-third-member --network hazelcast-network \
+    -e HZ_CLUSTERNAME=dev \
+    -p 5703:5701 hazelcast/hazelcast:5.2.2
+
+docker run \
+    -d \
+    --network hazelcast-network \
+    -p 8080:8080 hazelcast/management-center:latest-snapshot
+
+
+Editing config
+docker run --rm hazelcast/hazelcast:5.2.2 \
+cat /opt/hazelcast/config/hazelcast-docker.xml \
+> hazelcast.xml
+
+Edit
+
+Start again
+docker run \
+    -d \
+    -v "$(pwd)"/hazelcast.xml:/opt/hazelcast/hazelcast.xml \
+    -e HAZELCAST_CONFIG=hazelcast.xml \
+    --name main \
+    --network hazelcast-network \
+    -e HZ_CLUSTERNAME=dev \
+    -p 5701:5701 hazelcast/hazelcast:5.2.2 
