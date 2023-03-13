@@ -13,6 +13,11 @@ def domain_log(msg):
         'log_layer': 'Domain'
     })
 
+def service_log(msg):
+    logging.info(msg, extra={
+        'log_layer': 'Service'
+    })
+
 def configure_logging(service_name):
     FORMAT = logging.Formatter('[' + service_name + '][%(log_layer)s][%(asctime)s]: %(message)s')
     logging.root.setLevel(logging.INFO)
