@@ -46,6 +46,7 @@ class LoggingApp:
         self.arg_parser.add_argument('-p', '--port', type=int) 
 
     def run_hazelcast(self):
+        app_log("Starting Hazelcast docker container")
         arguments = ["docker", "run", 
                          "-d", "--rm", 
                          "--network", "hazelcast-network", "-e", "HZ_CLUSTERNAME=dev", 
@@ -68,9 +69,11 @@ class LoggingApp:
         if code != 0:
             app_log("Can not start hazelcast: \n" + str(output))
             exit()
+        app_log("Successfully started Hazelcast!")
         self.config[CONFIG_KEY_HAZELCAST_ID] = output.decode("utf-8").replace(" ", "").replace("\n", "")
     
     def stop_hazelcast(self):
+        app_log("Stopping Hazelcast!")
         os.system("docker stop " + self.config[CONFIG_KEY_HAZELCAST_ID])
 
     def run(self):
