@@ -1,4 +1,4 @@
-## Lab 3 - Мікросервиси з використанням Hazelcast Distributed Map
+## Lab 4 - Мікросервиси з використанням Messaging queue
 
 ### Огляд змін в сервісах
 У якості каналу доставки повідомлень між facade-service та messages-service використа но Hazelcast Distributed Queue
