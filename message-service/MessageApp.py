@@ -1,7 +1,8 @@
 from http.server import HTTPServer
 import argparse
 
-from MessageImpl import *
+from MessageHttpImpl import *
+from MessageQueueImpl import *
 from MessageApp import *
 
 CONFIG_KEY_PORT = "PORT"
@@ -28,8 +29,11 @@ class MessageApp:
         self.arg_parser.add_argument('-p', '--port', type=int) 
 
     def run(self):
+        consumer = MessageQueueImpl()
+        consumer.read_messages_async()
+        
         server_address = ('', self.config[CONFIG_KEY_PORT])
-        httpd = HTTPServer(server_address, MessageImpl)
+        httpd = HTTPServer(server_address, MessageHttpImpl)
         app_log('Starting httpd at ' + str(server_address))
         try:
             httpd.serve_forever()

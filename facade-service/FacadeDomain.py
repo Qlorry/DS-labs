@@ -3,6 +3,7 @@ from threading import Lock, Thread, Condition
 import uuid
 
 import requests
+import hazelcast
 
 from Logging import *
 from AddressHelper import AddressHelper
@@ -52,6 +53,7 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
         self.addr_helper = addr_helper
         self.messages = []
         self.sheduler = MessageSheduler()
+        self.hazelcast_client = hazelcast.HazelcastClient(cluster_members=["127.0.0.1:21000"])
 
     # TODO: add retry logic
     async def send_message(self, channel, id, message, notify_cond):
@@ -70,6 +72,22 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
             with notify_cond:
                 notify_cond.notify()
         return result
+
+    async def send_message_to_queue(self, id, message, notify_cond):
+        message_structure = {"id":id, "data": message}
+        try:
+            q = self.hazelcast_client.get_queue("logging-data-queue")
+            if not q.add(message_structure).result():
+                raise Exception("Can not add message {} to hazelcast queue!!!".format(id))
+            result = True
+            domain_log("Message {} added to hazelcast queue".format(id))
+        except Exception as e:
+            domain_log(e)
+            result = False
+        finally:
+            with notify_cond:
+                notify_cond.notify()
+                return result
 
     async def retrieve_message(self, channel, notify_cond):
         result = GetMessage()
@@ -99,8 +117,7 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
                                          message_id, message, 
                                          condition)
         background_tasks.add(logging_task)
-        message_task = self.sheduler.create_task(self.send_message, 
-                                         self.addr_helper.GetMessageSvcAddress(), 
+        message_task = self.sheduler.create_task(self.send_message_to_queue, 
                                          message_id, message, 
                                          condition)
         background_tasks.add(message_task)
