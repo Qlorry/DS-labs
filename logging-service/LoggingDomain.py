@@ -18,13 +18,13 @@ class LoggingDomainMeta(type):
 
 
 class LoggingDomain(metaclass=LoggingDomainMeta):
-    def __init__(self, hazelcast_address):
+    def __init__(self, hazelcast_address, data_map):
         try:
             self.hz_client = hazelcast.HazelcastClient(
-                cluster_members=[hazelcast_address])
+                cluster_members=hazelcast_address)
         except Exception as e:
             print(e)
-        self.map_name = "logging-data-map"
+        self.map_name = data_map #"logging-data-map"
 
     def add_message(self, id, message):
         try:

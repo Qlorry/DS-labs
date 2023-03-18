@@ -1,6 +1,8 @@
 from http.server import HTTPServer
 import argparse
 
+from ConsulRepo import ConsulRepo
+
 import Constants as constants
 from Constants import ConfigKeys
 from FacadeImpl import *
@@ -23,23 +25,20 @@ class FacadeApp:
     def parse_args(self):
         args = self.arg_parser.parse_args()
         self.config[ConfigKeys.PORT] = args.port
-        self.config[ConfigKeys.LOGGING_SVC_PORTS] = args.lp
-        self.config[ConfigKeys.MESSAGE_SVC_PORTS] = args.mp
+        self.config[ConfigKeys.CONSUL_ADDR] = args.consul
 
     def add_args_to_parser(self):
         self.arg_parser.add_argument('-p', '--port', type=int, help="port to work on") 
-        self.arg_parser.add_argument('-lp', metavar='LP', type=int, nargs='+',
-                    help='ports for logging services')
-        self.arg_parser.add_argument('-mp', type=int, nargs='+',
-                    help='ports for message services')
+        self.arg_parser.add_argument('-consul', type=str) 
         
     def run(self):
-        
-        FacadeDomain(AddressHelper(self.config[ConfigKeys.LOGGING_SVC_PORTS], self.config[ConfigKeys.MESSAGE_SVC_PORTS]))
+        c = ConsulRepo(self.name, self.config[ConfigKeys.PORT], self.config[ConfigKeys.CONSUL_ADDR])
+        FacadeDomain(AddressHelper(self.config[ConfigKeys.CONSUL_ADDR]), c.get_queue_name())
 
         server_address = ('', self.config[ConfigKeys.PORT])
         httpd = HTTPServer(server_address, FacadeImpl)
         app_log('Starting httpd at ' + str(server_address))
+        c.register()
         try:
             httpd.serve_forever()
         except KeyboardInterrupt:

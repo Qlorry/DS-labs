@@ -25,7 +25,7 @@ class MessageDomain(metaclass=MessageDomainMeta):
     def add_message(self, id, message):
         with self.messages_mtx:
             self.messages[id] = message
-        domain_log("Message {} added".format(id))
+        domain_log("Message {} added, data: {}".format(id, message))
 
     def get_messages(self):
         res = ""

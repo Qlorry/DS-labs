@@ -49,11 +49,12 @@ class FacadeDomainMeta(type):
 
 
 class FacadeDomain(metaclass=FacadeDomainMeta):
-    def __init__(self, addr_helper: AddressHelper):
+    def __init__(self, addr_helper: AddressHelper, queue_name):
         self.addr_helper = addr_helper
         self.messages = []
         self.sheduler = MessageSheduler()
-        self.hazelcast_client = hazelcast.HazelcastClient(cluster_members=["127.0.0.1:21000"])
+        self.hazelcast_client = hazelcast.HazelcastClient(cluster_members=self.addr_helper.get_hazelcast_address())
+        self.queue_name = queue_name
 
     # TODO: add retry logic
     async def send_message(self, channel, id, message, notify_cond):
@@ -111,9 +112,13 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
         background_tasks = set()   
         condition = Condition()
         message_id = uuid.uuid1()
-
+        domain_log("Forwarding message to internal services")
+        logging_addr = self.addr_helper.GetLoggingSvcAddress()
+        if logging_addr == None:
+            return False
+        
         logging_task = self.sheduler.create_task(self.send_message, 
-                                         self.addr_helper.GetLoggingSvcAddress(), 
+                                         logging_addr, 
                                          message_id, message, 
                                          condition)
         background_tasks.add(logging_task)
@@ -143,13 +148,19 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
         background_tasks = set()   
         condition = Condition()
         result = GetMessage()
+        domain_log("Requesting messages from internal services")
 
+        logging_addr = self.addr_helper.GetLoggingSvcAddress()
+        message_addr = self.addr_helper.GetMessageSvcAddress()
+        if logging_addr == None or message_addr == None:
+            return result
+        
         logging_task = self.sheduler.create_task(self.retrieve_message, 
-                                         self.addr_helper.GetLoggingSvcAddress(), 
+                                         logging_addr, 
                                          condition)
         background_tasks.add(logging_task)
         message_task = self.sheduler.create_task(self.retrieve_message, 
-                                         self.addr_helper.GetMessageSvcAddress(), 
+                                         message_addr, 
                                          condition)
         background_tasks.add(message_task)
 
@@ -166,7 +177,7 @@ class FacadeDomain(metaclass=FacadeDomainMeta):
                         result.status = False
                         return result
                     result.status = True
-                    result.messages += task_data.messages
+                    result.messages += task_data.messages + '\n-------\n'
                     tasks_to_remove.append(task)
                 
                 for task in tasks_to_remove:
