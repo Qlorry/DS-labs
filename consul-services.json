@@ -1,0 +1,22 @@
+{
+  "services": [
+    {
+      "id": "hazel1",
+      "name": "hazelcast",
+      "address": "main-hazelcast",
+      "port": 5701
+    },
+    {
+      "id": "hazel2",
+      "name": "hazelcast",
+      "address": "second-hazelcast",
+      "port": 5701
+    },
+    {
+      "id": "hazel3",
+      "name": "hazelcast",
+      "address": "third-hazelcast",
+      "port": 5701
+    }
+  ]
+}

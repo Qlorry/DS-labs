@@ -1,0 +1,86 @@
+version: "3"
+
+services:
+  facade:
+    image: facade-service
+    ports:
+      - 10000:10000
+    networks:
+      - services_network
+    command: -consul consul
+
+  logging:
+    image: logging-service
+    networks:
+      - services_network
+    command: -consul consul
+
+  logging-2:
+    image: logging-service
+    networks:
+      - services_network
+    command: -consul consul
+
+  logging-3:
+    image: logging-service
+    networks:
+      - services_network
+    command: -consul consul
+
+  message:
+    image: message-service
+    networks:
+      - services_network
+    command: -consul consul
+
+  message-2:
+    image: message-service
+    networks:
+      - services_network
+    command: -consul consul
+
+  consul:
+    image: consul:latest
+    ports:
+      - "8500:8500"
+      - "8600:8600/udp"
+    networks:
+      - services_network
+    command: agent -server -ui -node=server-1 -bootstrap-expect=1 -client=0.0.0.0 -config-dir /configs
+    volumes:
+      - consul-volume:/consul/data
+      - ${PWD}/consul-services.json:/configs/services.json 
+
+  main-hazelcast:
+    image: hazelcast/hazelcast:5.2.2
+    networks:
+      - services_network
+    ports:
+      - 5701:5701
+    environment:
+      - HZ_CLUSTERNAME=dev
+
+  second-hazelcast:
+    image: hazelcast/hazelcast:5.2.2
+    networks:
+      - services_network
+    environment:
+      - HZ_CLUSTERNAME=dev
+    depends_on:
+      - main-hazelcast
+
+  third-hazelcast:
+    image: hazelcast/hazelcast:5.2.2
+    networks:
+      - services_network
+    environment:
+      - HZ_CLUSTERNAME=dev
+    depends_on:
+      - main-hazelcast
+
+networks:
+  # The presence of these objects is sufficient to define them
+  services_network: {}
+
+volumes:
+  consul-volume:
