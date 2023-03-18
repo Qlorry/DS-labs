@@ -1,69 +1,111 @@
-## Lab 4 - Мікросервиси з використанням Messaging queue
+## Lab 5 - Мікросервиси з використанням Service Discovery та Config Server на базі Consul
 
 ### Огляд змін в сервісах
-У якості каналу доставки повідомлень між facade-service та messages-service використа но Hazelcast Distributed Queue
-Додано можливість запускати одночасно декілька копій messages-service
-facade-service випадковим чином обирає до якої копії messages-service звертатись для читання повідомлень 
+
+Для спрощення запуску всієї системи я зробив докерфайл для кожного з сервісів і compose.yaml.
+
+Сервіси Hazelcast я додав в дефолтну конфігурацію(consul-services.json).
+
+В усі сервіси я додав клас ConsulRepo, в ньому логіка з реєстрації сервісу та отримання імен структур hazelcast(де потрібно)
+
+З попередньої версії я трохи переглянув логи та додав більше інформації в message service, інші покращив.
+
+Додав логіку для health checks.
 
 ### Демонстрація роботи
 
-- Необхідно розгорнути Messaging queue - Hazelcast Distributed Queue
+- Всі мікросервіси мають реєструватись при старті у Consul, кожного з сервісів може бути запущено декілька екземплярів:  
 
-    Я використовую той самий Hazelcast кластер що і logging сервіси щоб не перевантажувати віртуальну машину
+    Клас ConsulRepo в кожному з сервісів відповідає за реєстрацію сервіса в Consul. Кожен сервіс реєструється з настроєним health check, перевірка за допомогою http GET.   
+    При закритті сервіса запис видаляється, у випадку падіння сервіса за таймаутом сервіс видаляється з consul.  
 
-- При надходженні POST-запиту до facade-service він має додавати повідомлення з запиту до черги повідомлень
+    ![Alt text](img/0.1.png?raw=true)  
+    ![Alt text](img/0.2.png?raw=true)  
+    ![Alt text](img/0.3.png?raw=true)  
 
-    В facade-service в FacadeDomain додано функцію send_message_to_queue, яка відправляє повідомлення до черги  
-    Ось процес запису повідомлень:
-    ![Alt text](img/1.1.png?raw=true)  
+- При звертанні facade-service до logging-service та messages-service, IP-адреси (і порти) мають зчитуватись facade-service з Consul. Немає бути задано в коді чи конфігураціях статичних значень адрес.  
 
-- Копії messages-service мають вичитувати повідомлення (схема - producer/consumer) та зберегти їх у пам’яті 
+    Логіка додана в AddressHelper.  
+    отримання адрес прим POST
+    ![Alt text](img/0.5.png?raw=true)  
+    отримання адрес прим GET  
+    ![Alt text](img/0.6.png?raw=true)  
 
-    Ця логіка додана в клас MessageDomain
+- Налаштування для клієнтів Hazelcast мають зберігатись як key/value у Consul і зчитуватись logging-service
+
+    В Consul додано стандартні записи сервісів hazelcast(файл consul-services.json що передається в якості docker volume в compose.yaml)  
+    Назва distrebuted-map задана в Consul як KV. Збережено в consul-volume.  
+    ![Alt text](img/0.4.png?raw=true)  
+
+- Налаштування для Message Queue (адреса, назва черги, …) мають зберігатись як key/value у Consul і зчитуватись facade-service та messages-service
+
+    Назва distrebuted-queue задана в Consul як KV. Збережено в consul-volume.  
+    
 
 ### Завдання
 
-- Запустити три екземпляра logging-service (локально їх можна запустити на різних портах), відповідно мають запуститись також три екземпляра Hazelcast
+### 1. Запустимо compose.yaml. Маємо:
+- facade-service
+- два екземпляра message-service
+- три екземпляра logging-service
+- три екземпляра hazelcast
+- Consul
 
-    ![Alt text](img/1.2.png?raw=true)
+![Alt text](img/1.1.png?raw=true)  
 
-- Запустити два екземпляри messages-service (локально їх можна запустити на різних портах)
+Всі контейнери запущені в одній мережі.  
 
-    ![Alt text](img/1.3.png?raw=true)
+![Alt text](img/1.2.png?raw=true)
 
-- Через HTTP POST записати 10 повідомлень msg1-msg10 через facade-service
+### 2. Дочекаємось запуску і ініціалізації всіх контейнерів. 
+Перевіримо зареєстровані сервіси в Consul:  
 
-    Запустимо змінюючи номер 10 разів
-    ![Alt text](img/1.4.png?raw=true)
+![Alt text](img/1.3.png?raw=true)
 
-- Показати які повідомлення отримав кожен з екземплярів logging-service (це має бути видно у логах сервісу)
+Значення в KV:
 
-    ![Alt text](img/1.5.png?raw=true)
+![Alt text](img/1.4.1.png?raw=true)  
+![Alt text](img/1.4.2.png?raw=true)![Alt text](img/1.4.3.png?raw=true)
 
-- Показати які повідомлення отримав кожен з екземплярів messages-service (це має бути видно у логах сервісу)
+### 3. Відправимо повідомлення  
+![Alt text](img/1.5.png?raw=true)
 
-    ![Alt text](img/1.6.png?raw=true)
+Логи з facade  
+![Alt text](img/1.6.png?raw=true)
 
-- Декілька разів викликати HTTP GET на facade-service та отримати об'єднані дві множини повідомлень - це мають бути повідомлення з logging-service та messages-service
+Логи одного з message   
+![Alt text](img/1.7.png?raw=true)
 
-    Оскільки повідомлення просто поєднуються в порядку виконання, перевіримо з логів що пришло з якого сервісу   
-    Перший запит 
-    ![Alt text](img/1.7.png?raw=true)
+Логи одного з logging   
+![Alt text](img/1.8.png?raw=true)
 
-    Повідомлення що пришли з logging сервісу  
-    ![Alt text](img/1.8.png?raw=true)
+Повторимо 10 разів. 
     
-    Тому перші 6 це повідомлення з message сервісу.
-    Перевіримо їх айді з facade сервісу
-    - "Message 1" має 468dbd5c-c288-11ed-8e03-08002704e8bc
-    - "Message 2" має 49ccf7d0-c288-11ed-8e03-08002704e8bc
-    - "Message 4" має 51523a74-c288-11ed-8e03-08002704e8bc
-    - "Message 6" має 5bf9c88e-c288-11ed-8e03-08002704e8bc
-    - "Message 8" має 607c0dae-c288-11ed-8e03-08002704e8bc
-    - "Message 10" має 67a67e20-c288-11ed-8e03-08002704e8bc
+### 4. Відправимо GET
+повідомлення з сервіса message i logging відділені "---------"
+![Alt text](img/1.9.png?raw=true)
+![Alt text](img/1.10.png?raw=true)
 
-    Саме ці айді записані в логах сервіса що працює на 30000 порту
+### 5. Зупинимо кілька сервісів
 
-    Наступний запит  
-    ![Alt text](img/1.9.png?raw=true)
-    Першими пришли повідомлення з logging сервісу, але бачимо що повторюються повідомлення яких немає на сервісі 30000, а сама 3, 5, 7, 9
+Для початку зупинимо logging, втрати даних не очікується:  
+![Alt text](img/2.1.png?raw=true)  
+Перевірка в Consul:  
+![Alt text](img/2.2.png?raw=true)  
+GET запит видає ті самі результати
+![Alt text](img/2.3.png?raw=true)  
+
+Зупинимо message сервіс
+![Alt text](img/2.4.png?raw=true)  
+Перевірка в Consul:   
+![Alt text](img/2.7.png?raw=true)  
+2 запити GET підряд видають однакові результати кожен раз(інформація з зупиненого сервіса втрачена):  
+![Alt text](img/2.5.png?raw=true)  
+![Alt text](img/2.6.png?raw=true)  
+
+### 6. Запустимо сервіс
+В систему можна додати повністю новий сервіс, але перезапуск контейнера буде сприйнято системою як новий сервіс(і це простіше зробити).  
+Тому перезапустимо для наочності message і відправимо 2 GET запити:  
+![Alt text](img/2.8.png?raw=true)   
+![Alt text](img/2.9.png?raw=true)  
+Перший запит надійшов до ноди що працювала до того, а другий до нової -- тому повідомлення від неї пусте.
